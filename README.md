@@ -8,7 +8,6 @@ Usage example:
 ```python
 > import sat_data                                                                                               
 > df = sat_data.get_data(database = 'objects')                                                                  
-  Read data from file ./esa_data/objects_2020-11-04.csv
 > df.columns                                                                                                    
   Index(['DiscosID', 'IntlDes', 'XSectMin', 'XSectMax', 'SatName', 'Mass',
        'ObjectType', 'Height', 'Depth', 'XSectAvg', 'SatNo', 'Shape',
