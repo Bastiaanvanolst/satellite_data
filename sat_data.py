@@ -150,8 +150,6 @@ def retrieve_discos_data(database):
     df = clean_discos(database = database, df = df)
     print('Data retrieved')
 
-    #TODO Save/pickle data
-
     return df 
 
 def clean_discos(database, df):
@@ -160,8 +158,10 @@ def clean_discos(database, df):
         'launches' : clean_discos_launches,
         'reentries' : clean_discos_reentries,
         'launch-sites' : clean_discos_launchsites,
+        'launch-systems' : clean_discos_launchsystems,
         'initial-orbits' : clean_discos_orbits,
         'fragmentations': clean_discos_fragmentations,
+        'entities' : clean_discos_entities,
         }
     
     return clean[database](df)
@@ -229,33 +229,80 @@ def clean_discos_objects(df):
 
 def clean_discos_launches(df):
     drop_cols = ['type',
-                'relationships.site.links.self',    
-                'relationships.site.links.related',    
+                'relationships.site.links.self',
+                'relationships.site.links.related',
                 'relationships.site.data.type',
-                'relationships.objects.links.self',    
-                'relationships.objects.links.related', 
+                'relationships.objects.links.self',
+                'relationships.objects.links.related',
                 'relationships.entities.links.self',
                 'relationships.entities.links.related',
                 'relationships.vehicle.links.self',
                 'relationships.vehicle.links.related',
+                'relationships.vehicle.data.type',
                 'relationships.site.data',
+                'relationships.vehicle.data',
                 'links.self']
 
     rename_cols = {
-                'id' : 'LaunchId',                  
+                'id' : 'LaunchId',
                 'relationships.site.data.id'    : 'LaunchSiteId',
-                'attributes.epoch'              : 'Epoch',          
-                'attributes.flightNo'           : 'FlightNo',        
-                'attributes.failure'            : 'Failure',         
-                'attributes.cosparLaunchNo'     : 'CosparLaunchNo', 
+                'attributes.epoch'              : 'Epoch',
+                'attributes.flightNo'           : 'FlightNo',
+                'attributes.failure'            : 'Failure',
+                'attributes.cosparLaunchNo'     : 'CosparLaunchNo',
+                'relationships.objects.data'    : 'ObjectId',
+                'relationships.vehicle.data.id' : 'VehicleId',
+                'relationships.entities.data'   : 'Entities',
                 }
+
 
     df.drop(columns = drop_cols, inplace = True)
     df.rename(columns = rename_cols, inplace = True)
 
     df['LaunchSiteId'] = df['LaunchSiteId'].apply(lambda x: np.nan if x is None else str(x))
+    df['CountryId'] = df['Entities'].apply(lambda x: np.nan if not x else (
+                             np.nan if True not in [i['type'] == 'country' for i in x] else
+                            np.array([i['id'] for i in x])[[i['type'] == 'country' for i in x]] ))
+    df['OrganisationId'] = df['Entities'].apply(lambda x: np.nan if not x else (
+                             np.nan if True not in [i['type'] == 'organisation' for i in x] else
+                            np.array([i['id'] for i in x])[[i['type'] == 'organisation' for i in x]] ))
+    df.drop(columns = 'Entities', inplace = True)
+    df['ObjectId'] = df['ObjectId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
 
     df['Epoch'] = pd.to_datetime(df['Epoch'])
+
+    return df
+
+def clean_discos_launchsystems(df):
+    drop_cols = ['type',
+                'relationships.entities.links.self',
+                'relationships.entities.links.related',
+                'relationships.families.links.self',     
+                'relationships.families.links.related',  
+                'links.self']
+
+    rename_cols = {
+                'id'    :   'LaunchSystemId',                                 
+                'relationships.entities.data'   :   'Entities',          
+                'relationships.families.data'   :   'VehicleFamilyId',
+                'attributes.name'               :   'VehicleFamilyName',
+                }
+
+
+
+
+    df.drop(columns = drop_cols, inplace = True)
+    df.rename(columns = rename_cols, inplace = True)
+
+    df['LaunchSystemId'] = df['LaunchSystemId'].apply(lambda x: np.nan if x is None else str(x))
+    df['CountryId'] = df['Entities'].apply(lambda x: np.nan if not x else (
+                             np.nan if True not in [i['type'] == 'country' for i in x] else
+                            np.array([i['id'] for i in x])[[i['type'] == 'country' for i in x]] ))
+    df['OrganisationId'] = df['Entities'].apply(lambda x: np.nan if not x else (
+                             np.nan if True not in [i['type'] == 'organisation' for i in x] else
+                            np.array([i['id'] for i in x])[[i['type'] == 'organisation' for i in x]] ))
+    df.drop(columns = 'Entities', inplace = True)
+    df['VehicleFamilyId'] = df['VehicleFamilyId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
 
     return df
 
@@ -355,6 +402,49 @@ def clean_discos_fragmentations(df):
 
     return df
 
+def clean_discos_entities(df):
+    drop_cols = ['type',
+                'relationships.objects.links.self',
+                'relationships.objects.links.related',
+                'relationships.launchSites.links.self',
+                'relationships.launchSites.links.related',
+                'relationships.hostCountry.links.self',
+                'relationships.hostCountry.links.related',
+                'relationships.launches.links.self',
+                'relationships.launches.links.related',
+                'relationships.launchSystems.links.self',
+                'relationships.launchSystems.links.related',
+                'attributes.dateRange',
+                'links.self',
+                ]
+    rename_cols = {'id' : 'EntityId',
+                'relationships.objects.data'        : 'ObjectIds',
+                'relationships.launchSites.data'    : 'LaunchSites',
+                #fetching hostCountry relationship from API seems not functional (dec 2020) 
+                #'relationships.hostCountry.data',
+                'relationships.launches.data'       : 'LaunchIds',
+                'relationships.launchSystems.data'  : 'LaunchSystems',
+                'attributes.name'                   : 'Name',
+                'attributes.dateRange.empty'        : 'DateEmpty',
+                'attributes.dateRange.upper'        : 'DateUpper',
+                'attributes.dateRange.lowerInc'     : 'DateLowerInc',
+                'attributes.dateRange.upperInc'     : 'DateUpperInc',
+                'attributes.dateRange.lower'        : 'DateLower',
+                'attributes.dateRange.display'      : 'DateRange',
+                #'attributes.dateRange',
+                    }
+
+    df.drop(columns = drop_cols, inplace = True)
+    df.rename(columns = rename_cols, inplace = True)
+    df['DateUpper'] = pd.to_datetime(df['DateUpper'])
+    # Entity 400: Alma Mater Studiorum Universita di Bologna was formed in 1088,
+    # which is below the minimum (outside the range that can be represented by
+    # nanosecond-resolution). For now, errors = 'ignore' will leave this date as
+    # a str
+    df['DateLower'] = pd.to_datetime(df['DateLower'], errors = 'ignore')
+    df['ObjectIds'] = df['ObjectIds'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
+
+    return df
 
 def discos_params(database):
 
@@ -371,12 +461,13 @@ def discos_params(database):
                 }
     elif database == 'launches':
         discos_params = {
-                'include' : 'site',
+                'include' : 'site,vehicle,objects,entities',
                 'page[number]' : 1, 
                 'page[size]' : 100, 
                 }
     elif database == 'launch-systems':
         discos_params = {
+                'include' : 'families,entities',
                 'page[number]' : 1, 
                 'page[size]' : 100, 
                 }
@@ -413,6 +504,7 @@ def discos_params(database):
                 }
     elif database == 'entities':
         discos_params = {
+                'include' : 'objects,launchSites,launches,launchSystems',#,hostCountry', 
                 'page[number]' : 1, 
                 'page[size]' : 100, 
                 }
