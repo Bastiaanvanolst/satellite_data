@@ -19,7 +19,8 @@ import re
 import os
 import io
 
-esa_token = 'YourTokenHere'
+#esa_token = 'YourTokenHere'
+esa_token = str(np.loadtxt('.esa_token.txt', dtype='str'))
 
 class MyError(Exception):
     def __init___(self,args):
@@ -159,6 +160,7 @@ def clean_discos(database, df):
         'reentries' : clean_discos_reentries,
         'launch-sites' : clean_discos_launchsites,
         'launch-systems' : clean_discos_launchsystems,
+        'launch-vehicles' : clean_discos_launchvehicles,
         'initial-orbits' : clean_discos_orbits,
         'fragmentations': clean_discos_fragmentations,
         'entities' : clean_discos_entities,
@@ -303,6 +305,51 @@ def clean_discos_launchsystems(df):
                             np.array([i['id'] for i in x])[[i['type'] == 'organisation' for i in x]] ))
     df.drop(columns = 'Entities', inplace = True)
     df['VehicleFamilyId'] = df['VehicleFamilyId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
+
+    return df
+
+def clean_discos_launchvehicles(df):
+    drop_cols = ['type',
+                'relationships.launches.links.self',
+                'relationships.launches.links.related',
+                'relationships.engines.links.self',
+                'relationships.engines.links.related',
+                'relationships.family.links.self',
+                'relationships.family.links.related',
+                'relationships.family.data.type',
+                'relationships.stages.links.self',
+                'relationships.stages.links.related',
+                'links.self']
+
+    rename_cols = {
+                'id'    :   'VehicleId',
+                'attributes.leoCapacity'        :   'LEOCapacity',
+                'attributes.geoCapacity'        :   'GEOCapacity',
+                'attributes.name'               :   'VehicleName',
+                'attributes.numStages'          :   'NumStages',
+                'attributes.gtoCapacity'        :   'GTOCapacity',
+                'attributes.escCapacity'        :   'ESCCapacity',
+                'attributes.successfulLaunches' :   'SuccessfulLaunches',
+                'attributes.failedLaunches'     :   'FailedLaunches',
+                'attributes.ssoCapacity'        :   'SSOCapacity',
+                'attributes.mass'               :   'Mass',
+                'attributes.height'             :   'Height',
+                'attributes.thrustLevel'        :   'ThrustLevel',
+                'attributes.diameter'           :   'Diameter',
+                'relationships.launches.data'   :   'LaunchId',
+                'relationships.engines.data'    :   'EngineId',
+                'relationships.family.data.id'  :   'FamilyId',
+                'relationships.stages.data'     :   'StageId',
+                }
+
+
+    df.drop(columns = drop_cols, inplace = True)
+    df.rename(columns = rename_cols, inplace = True)
+
+    df['VehicleId'] = df['VehicleId'].apply(lambda x: np.nan if x is None else str(x))
+    df['LaunchId'] = df['LaunchId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
+    df['EngineId'] = df['EngineId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
+    df['StageId'] = df['StageId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
 
     return df
 
@@ -505,6 +552,12 @@ def discos_params(database):
     elif database == 'entities':
         discos_params = {
                 'include' : 'objects,launchSites,launches,launchSystems',#,hostCountry', 
+                'page[number]' : 1, 
+                'page[size]' : 100, 
+                }
+    elif database == 'launch-vehicles':
+        discos_params = {
+                'include' : 'launches,engines,family,stages', 
                 'page[number]' : 1, 
                 'page[size]' : 100, 
                 }
