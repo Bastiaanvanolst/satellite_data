@@ -164,6 +164,7 @@ def clean_discos(database, df):
         'initial-orbits' : clean_discos_orbits,
         'fragmentations': clean_discos_fragmentations,
         'entities' : clean_discos_entities,
+        'propellants' : clean_discos_propellants,
         }
     
     return clean[database](df)
@@ -493,6 +494,27 @@ def clean_discos_entities(df):
 
     return df
 
+def clean_discos_propellants(df):
+    drop_cols = ['type',
+                'relationships.stages.links.self',    
+                'relationships.stages.links.related',   
+                'links.self',
+                ]
+    rename_cols = {
+                    'id'    :   'PropellantId',                                   
+                    'attributes.oxidiser'   :   'Oxidiser',           
+                    'attributes.fuel'       :   'Fuel',
+                    'attributes.solidPropellant'    :   'SolidPropellant',  
+                    'relationships.stages.data'     :   'StageId',
+                    }
+
+
+    df.drop(columns = drop_cols, inplace = True)
+    df.rename(columns = rename_cols, inplace = True)
+    df['StageId'] = df['StageId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
+
+    return df
+
 def discos_params(database):
 
     if database == 'objects':
@@ -558,6 +580,12 @@ def discos_params(database):
     elif database == 'launch-vehicles':
         discos_params = {
                 'include' : 'launches,engines,family,stages', 
+                'page[number]' : 1, 
+                'page[size]' : 100, 
+                }
+    elif database == 'propellants':
+        discos_params = {
+                'include' : 'stages', 
                 'page[number]' : 1, 
                 'page[size]' : 100, 
                 }
