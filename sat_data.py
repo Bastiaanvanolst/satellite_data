@@ -164,6 +164,7 @@ def clean_discos(database, df):
         'initial-orbits' : clean_discos_initialorbits,
         'destination-orbits' : clean_discos_destinationorbits,
         'fragmentations': clean_discos_fragmentations,
+        'fragmentation-event-types': clean_discos_fragmentationeventtypes,
         'entities' : clean_discos_entities,
         'propellants' : clean_discos_propellants,
         }
@@ -538,6 +539,20 @@ def clean_discos_propellants(df):
     df.drop(columns = drop_cols, inplace = True)
     df.rename(columns = rename_cols, inplace = True)
     df['StageId'] = df['StageId'].apply(lambda x: np.nan if not x else [xi['id'] for xi in x])
+
+    return df
+
+def clean_discos_fragmentationeventtypes(df):
+    drop_cols = ['type',
+                'links.self',
+                ]
+    rename_cols = {
+                    'id'    :   'FragEventId',                                   
+                    'attributes.name'   :   'ObjectName',
+                    }
+
+    df.drop(columns = drop_cols, inplace = True)
+    df.rename(columns = rename_cols, inplace = True)
 
     return df
 
