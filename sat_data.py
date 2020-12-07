@@ -161,7 +161,8 @@ def clean_discos(database, df):
         'launch-sites' : clean_discos_launchsites,
         'launch-systems' : clean_discos_launchsystems,
         'launch-vehicles' : clean_discos_launchvehicles,
-        'initial-orbits' : clean_discos_orbits,
+        'initial-orbits' : clean_discos_initialorbits,
+        'destination-orbits' : clean_discos_destinationorbits,
         'fragmentations': clean_discos_fragmentations,
         'entities' : clean_discos_entities,
         'propellants' : clean_discos_propellants,
@@ -396,7 +397,7 @@ def clean_discos_launchsites(df):
 
     return df
 
-def clean_discos_orbits(df):
+def clean_discos_initialorbits(df):
     drop_cols = ['type',
                 'relationships.object.links.self', 
                 'relationships.object.links.related', 
@@ -414,6 +415,31 @@ def clean_discos_orbits(df):
                 'attributes.raan'   : 'RAAN',
                 'attributes.frame'  : 'RefFrame',
                 }
+
+    df.drop(columns = drop_cols, inplace = True)
+    df.rename(columns = rename_cols, inplace = True)
+
+    return df
+
+def clean_discos_destinationorbits(df):
+    drop_cols = ['type',
+                'relationships.object.links.self', 
+                'relationships.object.links.related', 
+                'links.self',
+                ]
+
+    rename_cols = {
+                'id'                : 'OrbitId',
+                'attributes.sma'    : 'SemiMajorAxis',
+                'attributes.epoch'  : 'Epoch',
+                'attributes.aPer'   : 'ArgPeriapsis',
+                'attributes.inc'    : 'Inclination',
+                'attributes.mAno'   : 'MeanAnomoly',
+                'attributes.ecc'    : 'Eccentricity',
+                'attributes.raan'   : 'RAAN',
+                'attributes.frame'  : 'RefFrame',
+                }
+
 
     df.drop(columns = drop_cols, inplace = True)
     df.rename(columns = rename_cols, inplace = True)
