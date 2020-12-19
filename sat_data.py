@@ -1,6 +1,17 @@
 """
 Will fetch and store DISCOS data locally. Can fetch from databases:
-'objects','launches','reentries','launch-sites','initial-orbits','fragmentations'
+ - objects 
+ - launches
+ - reentries
+ - launch-sites
+ - launch-systems
+ - launch-vehicles
+ - initial-orbits
+ - destination-orbits
+ - fragmentations
+ - fragmentation-event-types
+ - entities
+ - propellants
 
 Usage example;
 import sat_data
