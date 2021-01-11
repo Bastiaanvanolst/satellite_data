@@ -100,6 +100,9 @@ def read_data(filename):
 
     df = pd.read_csv(filename)
 
+    if 'Epoch' in df.columns:
+        df['Epoch'] = pd.to_datetime(df['Epoch'])
+
     print(f'Read data from file {filename}')
 
     return df
@@ -143,7 +146,12 @@ def retrieve_discos_data(database):
            params=params, 
         )    
         resp_head = response.headers
-        limit_remain = int(resp_head['X-Ratelimit-Remaining']) 
+        try:
+            limit_remain = int(resp_head['X-Ratelimit-Remaining']) 
+        except KeyError:
+            limit_remain = input('Unknown error. Enter 0 to wait and retry.')
+            limit_remain = int(limit_remain)
+
         if limit_remain == 0:
             wait_time = float(resp_head['Retry-After']) + 5
             print(f'Exceeded API request limit.') 
@@ -228,18 +236,18 @@ def clean_discos_objects(df):
     df.rename(columns = rename_cols, inplace = True)
 
     df['InitOrbitId'] = df['InitOrbitId'].apply(lambda x: np.nan if not x else 
-                                                (str(x[0]['id']) if len(x) == 1 else
-                                                    [str(xi['id']) for xi in x]))
+                                                (int(x[0]['id']) if len(x) == 1 else
+                                                    [int(xi['id']) for xi in x]))
 
     df['DestOrbitId'] = df['DestOrbitId'].apply(lambda x: np.nan if not x else 
-                                                (str(x[0]['id']) if len(x) == 1 else
-                                                    [str(xi['id']) for xi in x]))
+                                                (int(x[0]['id']) if len(x) == 1 else
+                                                    [int(xi['id']) for xi in x]))
 
     df['OperatorId'] = df['OperatorId'].apply(lambda x: np.nan if not x else 
-                                                (str(x[0]['id']) if len(x) == 1 else
-                                                    [str(xi['id']) for xi in x]))
+                                                (int(x[0]['id']) if len(x) == 1 else
+                                                    [int(xi['id']) for xi in x]))
 
-    df['VimpelId'] = df['VimpelId'].apply(lambda x: np.nan if x is None else str(x))
+    df['VimpelId'] = df['VimpelId'].apply(lambda x: np.nan if x is None else int(x))
 
     return df
 
@@ -647,7 +655,7 @@ def discos_params(database):
 
 def get_ucsdata():
 
-    max_delta_t = dt.timedelta(days=365)
+    max_delta_t = dt.timedelta(days=30)
 
     now = dt.datetime.now()
     filelist = glob.glob(os.path.join('./esa_data','ucsdata_*'))
