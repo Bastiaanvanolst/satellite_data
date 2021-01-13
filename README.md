@@ -1,7 +1,7 @@
 # satellite_data
 A python wrapper to extract data from the ESA's DISCOS database (https://discosweb.esoc.esa.int/). Soon to come: plotting functions.
 Ensure that the python file is in your current directory or $PYTHONPATH. 
-You will also need register for your own API token from the DISCOS website, and edit the file to include it.
+You will also need register for your own API token from the DISCOS website, and edit the file to include it. Alternatively, save the token in a plain .txt file in the project directory with filename ".esa_token.txt"
 
 Usage example:
 
