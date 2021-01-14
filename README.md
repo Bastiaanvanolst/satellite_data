@@ -41,5 +41,5 @@ File: ./esa_data/ucsdata_2021-01-03.csv
 
 > p.plot_pop_evolution(vars = ['Payload','Launches','Junk'], scale = 'linear') 
 
-![alt text](https://github.com/jamesgrimmett/satellite_data/blob/main/plots/pop_growth_example.png?raw=true)
 ```
+![alt text](https://github.com/jamesgrimmett/satellite_data/blob/main/plots/pop_growth_example.png?raw=true)
