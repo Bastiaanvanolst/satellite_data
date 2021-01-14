@@ -30,6 +30,8 @@ class SatPlots(object):
         self.M_earth = 5.972e24 # Earth's mass (kg)
         self.R_earth = 6371000 # Earth's radius (m)
 
+        self.set_plot_options()
+
         self.df_frags = sat_data.get_data(database = 'fragmentations')
         self.df_fragevents = sat_data.get_data(database = 'fragmentation-event-types')
         df = sat_data.get_data(database = 'objects')
@@ -61,6 +63,66 @@ class SatPlots(object):
                     'Rocket Debris',
                     'Other Debris',
                     'Other Mission Related Object']
+
+    def set_plot_options(self):
+        rcParams['figure.titlesize'] = 12
+        rcParams['axes.labelsize'] = 10
+        rcParams['xtick.labelsize'] = 10
+        rcParams['ytick.labelsize'] = 10
+        rcParams['ytick.major.size'] = 0.0
+        rcParams['legend.fontsize'] = 10
+        rcParams['axes.grid.axis'] = 'y'
+        rcParams['axes.grid'] = True
+        rcParams['grid.color'] = 'xkcd:grey'
+        rcParams['grid.linestyle'] =  '-'
+        rcParams['grid.linewidth'] =  0.5
+        rcParams['grid.alpha']     =  0.4
+
+        self.plot_colors = ['lightsteelblue',
+                        'slategrey',
+                        'lightcoral',
+                        'black',
+                        'gold',
+                        'crimson',
+                        'dodgerblue']
+
+    def plot_pop_evolution(self, 
+            vars = ['Payload','Launches','Junk','Reentries','Fragmentations'], 
+            type = 'net',
+            scale = 'symlog'):
+
+        fig, ax = plt.subplots(ncols = 1,
+                                nrows = 1,
+                                figsize = (7,5))
+        fig.set_tight_layout({'rect':(0,0,1,0.95)})
+        fig.suptitle(f'Evolution of the Orbital Population; total ({type}) per year')
+
+        dfs = self.calc_growth_per_year()
+        type_dict = {'change' : int(0),
+                     'net' : int(1)}
+        df = dfs[type_dict[type]]
+        plot_colors = self.plot_colors
+
+        for i,var in enumerate(vars):
+            ax.plot(df.Year, df[var],
+                    color = plot_colors[i],
+                    marker='o',
+                    markersize=3,
+                    markeredgecolor=None,
+                    clip_on = False,
+                    label=var)
+
+        ax.set_ylabel(f'Total ({type}) per year')
+        ax.legend()
+        ax.set_yscale(scale)
+        if scale != 'log':
+            ax.set_ylim(bottom = 0.0)
+        self._hide_spines([ax])
+        self._add_data_source(ax = ax,
+                text = 'European Space Agency\n(https://discosweb.esoc.esa.int)',
+                x = 0.95,
+                y = 0.02,
+                ha = 'right')
 
 
     def plot_orbit_density(self, yr = 2020):
@@ -104,46 +166,6 @@ class SatPlots(object):
         axes[0,1].set_yscale('log')
 
         return df_orbits
-
-    def select_pop_in_year(self, yr = None):
-        """
-        For a given year, extract only the objects in orbit during that year
-        from the main objects dataframe (self.df)
-
-        Args: 
-            yr: The year for which satellite population data will be extracted
-        Returns:
-            df_yr_tot: A subset of the self.df dataframe for the given year
-        """
-        df = self.df
-        df_launches = self.df_launches
-        df_reentries = self.df_reentries
-        df_frags = self.df_frags
-        junk_obj = self.junk_obj
-        junk_obj_str = '|'.join(junk_obj)
-
-        # Assume current/most recent year if no year is given
-        if yr == None:
-            yr = df_launches.Epoch.dt.year.max()
-
-        launchids_tot = df_launches[df_launches.Epoch.dt.year <= yr]
-        launchids_tot = launchids_tot.LaunchId.unique()
-        # Don't drop objects that reenter during the selected year.
-        reentryids_tot = df_reentries[df_reentries.Epoch.dt.year < yr]
-        reentryids_tot = reentryids_tot.ReentryId.unique()
-        fragids_tot = df_frags[df_frags.Epoch.dt.year <= yr]
-        fragids_tot = fragids_tot.FragmentationId.unique()
-
-                    # Has been launched and not yet decayed, and
-        df_yr_tot = df[(df.LaunchId.isin(launchids_tot) &
-                    ~df.ReentryId.isin(reentryids_tot)) &
-                    # (is either not a fragmentation object, or
-                    # fragmentation event has already occurred)
-                    (df.FragmentationId.isna() |
-                    df.FragmentationId.isin(fragids_tot))].copy()
-                        
-
-        return df_yr_tot
 
 
     def assign_fragmentationid(self, df):
@@ -191,6 +213,145 @@ class SatPlots(object):
 
         return df
 
+    def calc_growth_per_year(self):
+        """
+        Calculate the population evolution for each year, and return a dataframe
+        for the yearly change and net total in each year
+
+        Returns:
+            ...
+        """
+
+        df = self.df
+        df_launches = self.df_launches
+        df_reentries = self.df_reentries
+        df_frags = self.df_frags
+        junk_obj = self.junk_obj
+
+        yr_min = int(np.nanmin(df_launches.Epoch.dt.year.unique()))
+        yr_max = int(np.nanmax(df_launches.Epoch.dt.year.unique()))
+        yrs = [i for i in range(yr_min,yr_max+1)]
+
+        obj_types = list(df.ObjectType.unique())
+        new_cols = ['Year','Launches','Reentries','Fragmentations'] + obj_types
+
+        df_yr_change = pd.DataFrame(np.zeros((len(yrs), len(new_cols))), columns = new_cols)
+        df_yr_change['Year'] = yrs
+        df_yr_total = pd.DataFrame(np.zeros((len(yrs), len(new_cols))), columns = new_cols)
+        df_yr_total['Year'] = yrs
+
+        for yr in yrs:
+            launchids = df_launches[df_launches.Epoch.dt.year == yr]
+            launchids = launchids.LaunchId.unique()
+            launchids_tot = df_launches[df_launches.Epoch.dt.year <= yr]
+            reentryids = df_reentries[df_reentries.Epoch.dt.year == yr]
+            reentryids = reentryids.ReentryId.unique()
+            reentryids_tot = df_reentries[df_reentries.Epoch.dt.year <= yr]
+            fragids = df_frags[df_frags.Epoch.dt.year == yr]
+            fragids = fragids.FragmentationId.unique()
+            fragids_tot = df_frags[df_frags.Epoch.dt.year <= yr]
+
+            # Yearly change
+            df_yr = self.select_launched_in_year(yr)
+            counts = df_yr.groupby('ObjectType')['DiscosID'].count()
+            counts = [counts[obj] if obj in counts.keys() else 0 for obj in obj_types]
+            df_yr_change.loc[df_yr_change.Year == yr, obj_types] = counts
+            df_yr_change.loc[df_yr_change.Year == yr, 'Launches'] = len(launchids)
+            df_yr_change.loc[df_yr_change.Year == yr, 'Reentries'] = len(reentryids)
+            df_yr_change.loc[df_yr_change.Year == yr, 'Fragmentations'] = len(fragids)
+            
+            # Yearly totals (net)
+            df_yr_tot = self.select_pop_in_year(yr)
+            counts_tot = df_yr_tot.groupby('ObjectType')['DiscosID'].count()
+            counts_tot = [counts_tot[obj] if obj in counts_tot.keys() else 0 for obj in obj_types]
+            df_yr_total.loc[df_yr_total.Year == yr, obj_types] = counts_tot
+            df_yr_total.loc[df_yr_total.Year == yr, 'Launches'] = len(launchids_tot)
+            df_yr_total.loc[df_yr_total.Year == yr, 'Reentries'] = len(reentryids_tot)
+            df_yr_total.loc[df_yr_total.Year == yr, 'Fragmentations'] = len(fragids_tot)
+
+        df_yr_change['Junk'] = df_yr_change[junk_obj].sum(axis = 1)
+        df_yr_total['Junk']   = df_yr_total[junk_obj].sum(axis = 1)
+
+        return df_yr_change, df_yr_total
+
+    def select_pop_in_year(self, yr = None):
+        """
+        For a given year, extract only the objects in orbit during that year
+        from the main objects dataframe (self.df)
+
+        Args: 
+            yr: The year for which satellite population data will be extracted
+        Returns:
+            df_yr_tot: A subset of the self.df dataframe for the given year
+        """
+        df = self.df
+        df_launches = self.df_launches
+        df_reentries = self.df_reentries
+        df_frags = self.df_frags
+        junk_obj = self.junk_obj
+        junk_obj_str = '|'.join(junk_obj)
+
+        # Assume current/most recent year if no year is given
+        if yr == None:
+            yr = df_launches.Epoch.dt.year.max()
+
+        launchids_tot = df_launches[df_launches.Epoch.dt.year <= yr]
+        launchids_tot = launchids_tot.LaunchId.unique()
+        # Don't drop objects that reenter during the selected year.
+        reentryids_tot = df_reentries[df_reentries.Epoch.dt.year < yr]
+        reentryids_tot = reentryids_tot.ReentryId.unique()
+        fragids_tot = df_frags[df_frags.Epoch.dt.year <= yr]
+        fragids_tot = fragids_tot.FragmentationId.unique()
+
+                    # Has been launched and not yet decayed, and
+        df_yr_tot = df[(df.LaunchId.isin(launchids_tot) &
+                    ~df.ReentryId.isin(reentryids_tot) &
+                    # (is either not a fragmentation object, or
+                    # fragmentation event has already occurred and not decayed)
+                    df.FragmentationId.isna()) |
+                    (df.FragmentationId.isin(fragids_tot) & 
+                    ~df.ReentryId.isin(reentryids_tot))].copy()
+                        
+
+        return df_yr_tot
+
+
+    def select_launched_in_year(self, yr = None):
+        """
+        For a given year, extact only the objects launched in that year from the
+        main objects dataframe
+        """
+        df = self.df
+        df_launches = self.df_launches
+        df_reentries = self.df_reentries
+        df_frags = self.df_frags
+        junk_obj = self.junk_obj
+        junk_obj_str = '|'.join(junk_obj)
+
+        # Assume current/most recent year if no year is given
+        if yr == None:
+            yr = df_launches.Epoch.dt.year.max()
+
+        launchids = df_launches[df_launches.Epoch.dt.year == yr]
+        launchids = launchids.LaunchId.unique()
+        fragids = df_frags[df_frags.Epoch.dt.year == yr]
+        fragids = fragids.FragmentationId.unique()
+
+        # Currently, fragmentation objects are assigned the same LaunchId as
+        # their progenitor, even though they technically do not become a unique
+        # object until the fragmentation event. So, we must take this into
+        # consideration for extracting the correct objects in each year
+
+        df_yr = df[( df.LaunchId.isin(launchids) &
+                    df.FragmentationId.isna() ) |
+                    df.FragmentationId.isin(fragids)].copy()
+        # This will not count Payloads/Rocket Bodies that are involved in
+        # fragmentation events in a later year, but is preferable to incorrectly
+        # counting fragmentation objects prior to the frag event. To improve,
+        # need some way to reliably distinguish between fragmentation
+        # progenitors and debris (IntlDes? ObjectType?) 
+
+        return df_yr
 
 
     def _select_orbit_in_year(self, row, yr):
@@ -245,3 +406,37 @@ class SatPlots(object):
 
         return result
 
+    def _hide_spines(self, axlist = None):
+        """
+        Hides the top and rightmost axis spines from view for all active
+        figures and their respective axes.
+        """
+
+        if axlist == None:
+            return
+
+        for ax in axlist:
+            # Disable spines.
+            ax.spines['right'].set_color('none')
+            ax.spines['left'].set_color('none')
+            ax.spines['top'].set_color('none')
+            ax.spines['bottom'].set_color('xkcd:grey')
+            # Disable ticks.
+            ax.xaxis.set_ticks_position('bottom')
+
+    def _add_data_source(self,
+                        ax = None,
+                        text = None,
+                        x = 0.95,
+                        y = 0.9,
+                        ha = 'right'):
+    
+        text = 'Data source: ' + text
+
+        ax.text(x, y,
+                text,
+                transform=ax.transAxes,
+                fontsize = 7,
+                alpha = 0.6,
+                ha = ha,
+                zorder = 1000)
