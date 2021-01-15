@@ -689,33 +689,33 @@ def get_ucsdata():
 
             print('Data retrieved')
 
-            col_rename = {  'Name of Satellite, Alternate Names': 'SATNAME',
-                            'Country of Operator/Owner': 'COUNTRY',
-                            'Country/Org of UN Registry': 'COUNTRY_UN_REG',
-                            'Operator/Owner': 'OWNER',
-                            'Users': 'USERS',
-                            'Purpose': 'PURPOSE',
-                            'Detailed Purpose' : 'DETAILED_PURPOSE',
-                            'Class of Orbit': 'ORBIT_CLASS',
-                            'Type of Orbit': 'ORBIT_TYPE',
-                            'Longitude of GEO (degrees)': 'LONGITUDE_GEO',
-                            'Perigee (km)': 'PERIGEE',
-                            'Apogee (km)': 'APOGEE',
-                            'Eccentricity': 'ECCENTRICITY',
-                            'Inclination (degrees)': 'INCLINATION',
-                            'Period (minutes)': 'PERIOD',
-                            'Launch Mass (kg.)': 'MASS_LAUNCH',
-                            'Dry Mass (kg.)': 'MASS_DRY',
-                            'Power (watts)': 'POWER',
-                            'Date of Launch': 'LAUNCH',
-                            'Expected Lifetime (yrs.)': 'EXP_LIFETIME',
-                            'Contractor': 'CONTRACTOR',
-                            'Country of Contractor': 'COUNTRY_CONTRACTOR',
-                            'Launch Site': 'SITE',
-                            'Launch Vehicle': 'LAUNCH_VEHICLE',
-                            'COSPAR Number': 'INTLDES',
-                            'NORAD Number': 'NORAD_CAT_ID',
-                            'Comments': 'COMMENTS'
+            col_rename = {  'Name of Satellite, Alternate Names': 'SatName',
+                            'Country of Operator/Owner': 'Country',
+                            'Country/Org of UN Registry': 'UNRegCountry',
+                            'Operator/Owner': 'Owner',
+                            'Users': 'Users',
+                            'Purpose': 'Purpose',
+                            'Detailed Purpose' : 'PurposeDetailed',
+                            'Class of Orbit': 'OrbitClass',
+                            'Type of Orbit': 'OrbitType',
+                            'Longitude of GEO (degrees)': 'LongitudeGEO',
+                            'Perigee (km)': 'Perigee',
+                            'Apogee (km)': 'Apogee',
+                            'Eccentricity': 'Eccentricity',
+                            'Inclination (degrees)': 'Inclination',
+                            'Period (minutes)': 'Period',
+                            'Launch Mass (kg.)': 'MassLaunch',
+                            'Dry Mass (kg.)': 'MassDry',
+                            'Power (watts)': 'Power',
+                            'Date of Launch': 'Launch',
+                            'Expected Lifetime (yrs.)': 'ExpLifetime',
+                            'Contractor': 'Contractor',
+                            'Country of Contractor': 'ContractorCountry',
+                            'Launch Site': 'LaunchSite',
+                            'Launch Vehicle': 'LaunchVehicle',
+                            'COSPAR Number': 'IntlDes',
+                            'NORAD Number': 'NORAD',
+                            'Comments': 'Comments'
                         }
 
             df.rename(columns=col_rename, inplace=True)
@@ -728,9 +728,9 @@ def get_ucsdata():
 
     #years = np.array([dt.datetime.strptime(d,'%Y-%m-%d').year for d in df.LAUNCH])
     #df['LAUNCH_YEAR'] = years
-    df['LAUNCH'] = pd.to_datetime(df.LAUNCH)
+    df['Launch'] = pd.to_datetime(df.Launch)
     years = np.zeros((len(df)))
-    df['LAUNCH_YEAR'] = df.LAUNCH.dt.year 
+    df['LaunchYear'] = df.Launch.dt.year 
 
 
 

@@ -95,7 +95,7 @@ class SatPlots(object):
                                 nrows = 1,
                                 figsize = (7,5))
         fig.set_tight_layout({'rect':(0,0,1,0.95)})
-        fig.suptitle(f'Evolution of the Orbital Population; total ({type}) per year')
+        fig.suptitle(f'Evolution of the Orbital Population; total ({type})')
 
         dfs = self.calc_growth_per_year()
         type_dict = {'change' : int(0),
@@ -160,12 +160,52 @@ class SatPlots(object):
         
         
 
-        sns.jointplot(data=xx, x="SemiMajorAxis", y="Inclination", kind="hex", xscale = 'log', bins = 'log', gridsize = 50, marginal_ticks = True, marginal_kws = {'bins' : 50, 'log_scale' : False}) 
+        #sns.jointplot(data=xx, x="SemiMajorAxis", y="Inclination", kind="hex", xscale = 'log', bins = 'log', gridsize = 50, marginal_ticks = True, marginal_kws = {'bins' : 50, 'log_scale' : False}) 
 
-        axes = xx[xx.SemiMajorAxis.notna()][['SemiMajorAxis','Inclination']].hist()
-        axes[0,1].set_yscale('log')
+        #axes = xx[xx.SemiMajorAxis.notna()][['SemiMajorAxis','Inclination']].hist()
+        #axes[0,1].set_yscale('log')
 
         return df_orbits
+
+    def plot_purpose_ucs(self):
+        df_ucs = self.df_ucs
+
+        fig = plt.figure(figsize = (10,5))
+
+        df_ucs.loc[df_ucs.Purpose == 'Earth Observation ', 'Purpose'] = 'Earth Observation'
+        df_ucs.loc[df_ucs.Purpose == 'Earth/Space Observation', 'Purpose'] = 'Earth & Space Observation'
+
+        main_purposes = ['Communications',
+                         'Earth Observation',
+                         'Technology Development',
+                         'Navigation/Global Positioning',
+                         'Space Science',
+                         'Earth Science',
+                         'Navigation/Regional Positioning',
+                         'Technology Demonstration',
+                         ]
+
+
+        df_ucs['PurposeBinned'] = df_ucs.Purpose.apply(lambda x :
+                    'Unknown' if pd.isna(x) else (
+                    'Multipurpose' if (x.split('/')[0] in main_purposes and len(x.split('/')) > 1) else (
+                    x if x in main_purposes else
+                    'Other')),
+                    )
+
+        counts = df_ucs.PurposeBinned.value_counts()
+
+        ax = counts.plot.barh(zorder = 4)
+        ax.set_title('Purposes of active satellites by number')
+        ax.grid(False, axis='y')
+        ax.grid(True, axis='x', zorder = 0)
+        self._hide_spines([ax])
+        #ax.tick_params(labelrotation = 30, axis = 'y')
+        #ax.set_figure(fig)
+        fig.set_tight_layout({'rect':(0,0,1,0.95)})
+
+        self._add_data_source(ax = ax, text = 'Union of Concerned Scientists,\nucsusa.org/resources/satellite-database')
+
 
 
     def assign_fragmentationid(self, df):
