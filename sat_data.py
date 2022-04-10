@@ -1,5 +1,5 @@
 """
-Will fetch and store DISCOS data locally. Can fetch from databases:
+Will fetch and store DISCOS data locally. Can fetch from the following databases:
  - objects 
  - launches
  - reentries
@@ -21,8 +21,6 @@ d = sat_data.get_data(database = 'objects')
 import requests
 import numpy as np
 import pandas as pd
-import pickle as pkl
-import json
 import datetime as dt
 import time
 import glob
@@ -33,10 +31,6 @@ import io
 #esa_token = 'YourTokenHere'
 esa_token = str(np.loadtxt('.esa_token.txt', dtype='str'))
 
-class MyError(Exception):
-    def __init___(self,args):
-        Exception.__init__(self,"my exception was raised with arguments {0}".format(args))
-        self.args = args
 
 def get_data(database):
     """
@@ -131,7 +125,7 @@ def retrieve_discos_data(database):
     )    
 
     if not response.ok:
-        raise MyError(response.json()['error'], "Discos request failed")
+        raise ConnectionError(f"Discos request failed:\n{response.json()['error']}")
 
     dat = response.json()['data']
     df = pd.json_normalize(dat)
@@ -683,7 +677,7 @@ def get_ucsdata():
             resp = session.get('https://www.ucsusa.org/media/11492')
             if resp.status_code != 200:
                 print(resp)
-                raise MyError(resp, "GET fail on request for Box Score")
+                raise ConnectionError(f"GET fail on request for Box Score:\n{resp}")
 
             df = pd.read_excel(io.BytesIO(resp.content))
 
