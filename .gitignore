@@ -18,4 +18,8 @@ build/
 .idea/
 
 # Environment variables
-.env 
+.env
+.esa_token.txt
+
+# Project specific
+esa_data/*
