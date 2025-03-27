@@ -251,31 +251,21 @@ def clean_discos_objects(df):
     df.drop(columns=drop_cols, inplace=True)
     df.rename(columns=rename_cols, inplace=True)
 
-    df["InitOrbitId"] = df["InitOrbitId"].apply(
-        lambda x: (
-            np.nan
-            if not x
-            else (int(x[0]["id"]) if len(x) == 1 else [int(xi["id"]) for xi in x])
-        )
-    )
+    def safe_id_convert(x):
+        if pd.isna(x) or x is None:
+            return np.nan
+        if isinstance(x, list):
+            return [int(xi["id"]) for xi in x]
+        if isinstance(x, dict):
+            return int(x["id"])
+        return np.nan
 
-    df["DestOrbitId"] = df["DestOrbitId"].apply(
-        lambda x: (
-            np.nan
-            if not x
-            else (int(x[0]["id"]) if len(x) == 1 else [int(xi["id"]) for xi in x])
-        )
+    df["InitOrbitId"] = df["InitOrbitId"].apply(safe_id_convert)
+    df["DestOrbitId"] = df["DestOrbitId"].apply(safe_id_convert)
+    df["OperatorId"] = df["OperatorId"].apply(safe_id_convert)
+    df["VimpelId"] = df["VimpelId"].apply(
+        lambda x: np.nan if pd.isna(x) or x is None else int(x)
     )
-
-    df["OperatorId"] = df["OperatorId"].apply(
-        lambda x: (
-            np.nan
-            if not x
-            else (int(x[0]["id"]) if len(x) == 1 else [int(xi["id"]) for xi in x])
-        )
-    )
-
-    df["VimpelId"] = df["VimpelId"].apply(lambda x: np.nan if x is None else int(x))
 
     return df
 
